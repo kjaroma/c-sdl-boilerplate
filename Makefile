@@ -1,5 +1,11 @@
 CC = gcc
-CFLAGS = -Wall `sdl2-config --cflags --static-libs`
+UNAME := $(shell uname)
+
+CFLAGS = -Wall $(shell sdl2-config --cflags --static-libs)
+
+ifeq ($(UNAME), Linux)
+	CFLAGS = -Wall -lSDL2
+endif
 
 all: 
 	make run
@@ -8,7 +14,6 @@ run: build
 	./main.exe
 
 build: main.c
-	pwd
 	$(CC) main.c -o main.exe $(CFLAGS)
 
 clean:

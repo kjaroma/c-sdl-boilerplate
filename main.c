@@ -5,34 +5,90 @@
 #define WIDTH 800
 #define HEIGHT 600
 
+#define TRUE 1
+#define FALSE 0
+
 typedef struct
 {
     int x, y, speddx, speeddy;
 } Particle;
 
-Particle position = {WIDTH / 2, HEIGHT / 2, 1, 1};
+Particle particle = {WIDTH / 2, HEIGHT / 2, 1, 1};
 
-void update()
+int is_running = 0;
+SDL_Window *window;
+SDL_Renderer *renderer;
+
+int initialize_window()
 {
-    position.x += position.speddx;
-    position.y += position.speeddy;
-    if(position.x < 0 || position.x > WIDTH)
+    if (SDL_Init(SDL_INIT_VIDEO) < 0)
     {
-        position.speddx = -position.speddx;
+        fprintf(stderr, "SDL initialization failed: %s\n", SDL_GetError());
+        return FALSE;
     }
-    if(position.y < 0 || position.y > HEIGHT)
+
+    if (SDL_CreateWindowAndRenderer(WIDTH, HEIGHT, 0, &window, &renderer) < 0)
     {
-        position.speeddy = -position.speeddy;
+        fprintf(stderr, "Window creation failed: %s\n", SDL_GetError());
+        return FALSE;
+    }
+    return TRUE;
+}
+
+int destroy_window()
+{
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+    return 0;
+}
+
+void setup()
+{
+    // Setup effect
+}
+
+void process_input()
+{
+    SDL_Event event;
+    SDL_PollEvent(&event);
+
+    switch (event.type)
+    {
+    case SDL_QUIT:
+        is_running = FALSE;
+        break;
+    case SDL_KEYDOWN:
+        if(event.key.keysym.sym == SDLK_ESCAPE) {
+            is_running = FALSE;
+        }
+        break;
+    default:
+        break;
     }
 }
 
-void draw(SDL_Renderer *renderer)
+void update()
+{
+    particle.x += particle.speddx;
+    particle.y += particle.speeddy;
+    if (particle.x < 0 || particle.x > WIDTH)
+    {
+        particle.speddx = -particle.speddx;
+    }
+    if (particle.y < 0 || particle.y > HEIGHT)
+    {
+        particle.speeddy = -particle.speeddy;
+    }
+}
+
+void draw()
 {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_RenderDrawPoint(renderer, position.x, position.y);
+    SDL_RenderDrawPoint(renderer, particle.x, particle.y);
 
     SDL_RenderPresent(renderer);
     SDL_Delay(16);
@@ -40,38 +96,16 @@ void draw(SDL_Renderer *renderer)
 
 int main(int argc, char *argv[])
 {
-    SDL_Window *window;
-    SDL_Renderer *renderer;
+    is_running = initialize_window();
 
-    if (SDL_Init(SDL_INIT_VIDEO) < 0)
+    while (is_running)
     {
-        fprintf(stderr, "SDL initialization failed: %s\n", SDL_GetError());
-        return 1;
-    }
-
-    if (SDL_CreateWindowAndRenderer(WIDTH, HEIGHT, 0, &window, &renderer) < 0)
-    {
-        fprintf(stderr, "Window creation failed: %s\n", SDL_GetError());
-        return 1;
-    }
-
-    while (1)
-    {
-        SDL_Event event;
-        while (SDL_PollEvent(&event))
-        {
-            if (event.type == SDL_QUIT)
-            {
-                SDL_DestroyRenderer(renderer);
-                SDL_DestroyWindow(window);
-                SDL_Quit();
-                return 0;
-            }
-        }
-
+        process_input();
         update();
         draw(renderer);
     }
+
+    destroy_window();
 
     return 0;
 }
