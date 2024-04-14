@@ -7,13 +7,17 @@
 
 #define TRUE 1
 #define FALSE 0
+#define FPS 60
+#define FRAME_DELAY (1000 / FPS)
+
+int last_frame_ticks = 0;
 
 typedef struct
 {
-    int x, y, speddx, speeddy;
+    int x, y, speedx, speedy;
 } Particle;
 
-Particle particle = {WIDTH / 2, HEIGHT / 2, 1, 1};
+Particle particle = {WIDTH / 2, HEIGHT / 2, 130, 130};
 
 int is_running = 0;
 SDL_Window *window;
@@ -59,7 +63,8 @@ void process_input()
         is_running = FALSE;
         break;
     case SDL_KEYDOWN:
-        if(event.key.keysym.sym == SDLK_ESCAPE) {
+        if (event.key.keysym.sym == SDLK_ESCAPE)
+        {
             is_running = FALSE;
         }
         break;
@@ -70,15 +75,29 @@ void process_input()
 
 void update()
 {
-    particle.x += particle.speddx;
-    particle.y += particle.speeddy;
-    if (particle.x < 0 || particle.x > WIDTH)
-    {
-        particle.speddx = -particle.speddx;
+    // Have consistent FPS wasting some time since last render
+    int time_to_wait = FRAME_DELAY - (SDL_GetTicks() - last_frame_ticks);
+
+    // If we stiil have time to wait, delay next render
+    if(time_to_wait > 0 && time_to_wait <= FRAME_DELAY) {
+        SDL_Delay(time_to_wait);
     }
-    if (particle.y < 0 || particle.y > HEIGHT)
+
+    // Time based factor for handling time evolution.
+    // Having this approach we do not need to delay on every fps as all evolutions
+    // are time based and depepnded on FPS.
+    float delta_time = (SDL_GetTicks() - last_frame_ticks) / 1000.0f;
+    last_frame_ticks = SDL_GetTicks();
+
+    particle.x += particle.speedx * delta_time;
+    particle.y += particle.speedy * delta_time;
+    if (particle.x <= 0 || particle.x >= WIDTH)
     {
-        particle.speeddy = -particle.speeddy;
+        particle.speedx = -particle.speedx;
+    }
+    if (particle.y <= 0 || particle.y >= HEIGHT)
+    {
+        particle.speedy = -particle.speedy;
     }
 }
 
@@ -91,7 +110,6 @@ void draw()
     SDL_RenderDrawPoint(renderer, particle.x, particle.y);
 
     SDL_RenderPresent(renderer);
-    SDL_Delay(16);
 }
 
 int main(int argc, char *argv[])
